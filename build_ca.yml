@@ -1,0 +1,39 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Installation of openssl
+      apt:
+        name: openssl
+        state: present
+
+    - name: Generate CA key
+      openssl_privatekey:
+        path: /etc/ssl/private/ca.key
+        size: 4096
+      register: ca_ssl_key
+
+    - name: Generate CA certificate
+      openssl_csr:
+        path: /etc/ssl/certs/ca.csr
+        privatekey_path: /etc/ssl/private/ca.key
+        common_name: "BUILD CA WITH SSL"
+        country_name: "PH"
+        state_or_province_name: "Pasig"
+        locality_name: "Rosario"
+        organization_name: "FortiDrop.inc"
+        email_address: "qmjdvlagao@tip.edu.ph"
+      register: ca_csr
+
+    - name: Self signed CA certificate
+      openssl_certificate:
+        path: /etc/ssl/certs/ca.crt
+        privatekey_path: /etc/ssl/private/ca.key
+        csr_path: /etc/ssl/certs/ca.csr
+        provider: selfsigned
+        force: true
+
+    - name: Copy the cert to the remote users
+      copy:
+        src: /etc/ssl/certs/ca-certificates.crt
+        dest: /etc/pki/ca-trust/source/anchors/
